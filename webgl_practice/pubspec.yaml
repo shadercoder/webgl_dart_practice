@@ -1,0 +1,4 @@
+name: webgl_practice
+description: A sample web application
+dependencies:
+  browser: any
