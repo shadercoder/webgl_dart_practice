@@ -112,7 +112,7 @@ void createShader()
   _glContext.attachShader(shaderProgram, vertexShader);
   _glContext.attachShader(shaderProgram, fragmentShader);
   _glContext.linkProgram(shaderProgram);
-  _glContext.useProgram(shaderProgram);
+ 
   
   // check compile & link status
   
@@ -146,7 +146,7 @@ void render()
   _glContext.clearColor(0, 0, 0, 255);
   _glContext.clear(WebGL.RenderingContext.COLOR_BUFFER_BIT | WebGL.RenderingContext.DEPTH_BUFFER_BIT);
   
-  
+  _glContext.useProgram(shaderProgram);
   // projection matrix
   projMatrix = makePerspectiveMatrix(radians(45.0), vpWidth / vpHeight, 0.01, 1000.0);
   
