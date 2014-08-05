@@ -2,11 +2,11 @@
   * written by peter (shader coder)
   * 
 */
-library webgl1;
+library wgl1;
 
 import "dart:html";
 import "package:vector_math/vector_math.dart";
-import "dart:web_gl" as WebGL;
+import "dart:web_gl" as wgl;
 import "dart:typed_data";  
 
 CanvasElement glCanvas;
@@ -14,14 +14,14 @@ CanvasElement glCanvas;
 // viewport resolution 
 int vpWidth = 0;
 int vpHeight = 0;
-WebGL.RenderingContext _glContext;
+wgl.RenderingContext _gl;
 
-WebGL.Buffer triVertexBuffer;
-WebGL.Buffer quadVertexBuffer;
-WebGL.Program shaderProgram;
+wgl.Buffer triVertexBuffer;
+wgl.Buffer quadVertexBuffer;
+wgl.Program shaderProgram;
 int positionLoc = -1;
-WebGL.UniformLocation mvMatrixLoc;
-WebGL.UniformLocation projMatrixLoc;
+wgl.UniformLocation mvMatrixLoc;
+wgl.UniformLocation projMatrixLoc;
 
 Matrix4 projMatrix;
 Matrix4 mvMatrix;
@@ -33,27 +33,27 @@ void init()
   vpWidth = glCanvas.width;
   vpHeight = glCanvas.height;
   
-  _glContext = glCanvas.getContext("experimental-webgl");
+  _gl = glCanvas.getContext("experimental-webgl");
   
   createVertexBuffer();
   
   createShader();
   
-  _glContext.enable(WebGL.RenderingContext.DEPTH_TEST);
+  _gl.enable(wgl.RenderingContext.DEPTH_TEST);
  
 }
 
 void createVertexBuffer()
 {
   // create triangle & quad vertex buffr
-  triVertexBuffer = _glContext.createBuffer();
+  triVertexBuffer = _gl.createBuffer();
   
-  quadVertexBuffer = _glContext.createBuffer();
+  quadVertexBuffer = _gl.createBuffer();
   
   
   // filling triangle data to vertex buffer
   List<double> vertices;
-  _glContext.bindBuffer(WebGL.RenderingContext.ARRAY_BUFFER, triVertexBuffer);
+  _gl.bindBuffer(wgl.RenderingContext.ARRAY_BUFFER, triVertexBuffer);
   
   // real vertex data (include only position)
   vertices =
@@ -64,7 +64,7 @@ void createVertexBuffer()
   ];
   
   // fill data to allocated buffer in gpu memory.
-  _glContext.bufferDataTyped(WebGL.RenderingContext.ARRAY_BUFFER, new Float32List.fromList(vertices), WebGL.RenderingContext.STATIC_DRAW);
+  _gl.bufferDataTyped(wgl.RenderingContext.ARRAY_BUFFER, new Float32List.fromList(vertices), wgl.RenderingContext.STATIC_DRAW);
   
   
 }
@@ -72,8 +72,8 @@ void createVertexBuffer()
 
 void createShader()
 {
-  WebGL.Shader vertexShader = _glContext.createShader(WebGL.RenderingContext.VERTEX_SHADER);
-  WebGL.Shader fragmentShader = _glContext.createShader(WebGL.RenderingContext.FRAGMENT_SHADER);
+  wgl.Shader vertexShader = _gl.createShader(wgl.RenderingContext.VERTEX_SHADER);
+  wgl.Shader fragmentShader = _gl.createShader(wgl.RenderingContext.FRAGMENT_SHADER);
   
   // vertex shader source..
   String vs = """
@@ -101,52 +101,52 @@ void createShader()
   
   // compile shaders
   
-  _glContext.shaderSource(vertexShader, vs);
-  _glContext.compileShader(vertexShader);
+  _gl.shaderSource(vertexShader, vs);
+  _gl.compileShader(vertexShader);
   
-  _glContext.shaderSource(fragmentShader, ps);
-  _glContext.compileShader(fragmentShader);
+  _gl.shaderSource(fragmentShader, ps);
+  _gl.compileShader(fragmentShader);
   
   // create program
-  shaderProgram = _glContext.createProgram();
-  _glContext.attachShader(shaderProgram, vertexShader);
-  _glContext.attachShader(shaderProgram, fragmentShader);
-  _glContext.linkProgram(shaderProgram);
+  shaderProgram = _gl.createProgram();
+  _gl.attachShader(shaderProgram, vertexShader);
+  _gl.attachShader(shaderProgram, fragmentShader);
+  _gl.linkProgram(shaderProgram);
  
   
   // check compile & link status
   
-  if(!_glContext.getShaderParameter(vertexShader, WebGL.RenderingContext.COMPILE_STATUS));
+  if(!_gl.getShaderParameter(vertexShader, wgl.RenderingContext.COMPILE_STATUS));
   {
-    print(_glContext.getShaderInfoLog(vertexShader));
+    print(_gl.getShaderInfoLog(vertexShader));
   }
   
-  if(!_glContext.getShaderParameter(fragmentShader, WebGL.RenderingContext.COMPILE_STATUS));
+  if(!_gl.getShaderParameter(fragmentShader, wgl.RenderingContext.COMPILE_STATUS));
   {
-    print(_glContext.getShaderInfoLog(fragmentShader));
+    print(_gl.getShaderInfoLog(fragmentShader));
   }
   
-  if(!_glContext.getProgramParameter(shaderProgram,WebGL.RenderingContext.LINK_STATUS))
+  if(!_gl.getProgramParameter(shaderProgram,wgl.RenderingContext.LINK_STATUS))
   {
-    print(_glContext.getProgramInfoLog(shaderProgram));
+    print(_gl.getProgramInfoLog(shaderProgram));
   }
   
-  positionLoc = _glContext.getAttribLocation(shaderProgram, "position");
+  positionLoc = _gl.getAttribLocation(shaderProgram, "position");
   
-  _glContext.enableVertexAttribArray(positionLoc);
+  _gl.enableVertexAttribArray(positionLoc);
   
-  mvMatrixLoc = _glContext.getUniformLocation(shaderProgram, "mvMatrix");
-  projMatrixLoc = _glContext.getUniformLocation(shaderProgram, "projMatrix");
+  mvMatrixLoc = _gl.getUniformLocation(shaderProgram, "mvMatrix");
+  projMatrixLoc = _gl.getUniformLocation(shaderProgram, "projMatrix");
   
 }
 
 void render()
 {
-  _glContext.viewport(0, 0, vpWidth, vpHeight);
-  _glContext.clearColor(0, 0, 0, 255);
-  _glContext.clear(WebGL.RenderingContext.COLOR_BUFFER_BIT | WebGL.RenderingContext.DEPTH_BUFFER_BIT);
+  _gl.viewport(0, 0, vpWidth, vpHeight);
+  _gl.clearColor(0, 0, 0, 255);
+  _gl.clear(wgl.RenderingContext.COLOR_BUFFER_BIT | wgl.RenderingContext.DEPTH_BUFFER_BIT);
   
-  _glContext.useProgram(shaderProgram);
+  _gl.useProgram(shaderProgram);
   // projection matrix
   projMatrix = makePerspectiveMatrix(radians(45.0), vpWidth / vpHeight, 0.01, 1000.0);
   
@@ -155,19 +155,19 @@ void render()
   mvMatrix.translate(new Vector3(0.0, 1.0, -5.0));
   
   // bind buffer & set vertex attribute
-  _glContext.bindBuffer(WebGL.RenderingContext.ARRAY_BUFFER, triVertexBuffer);
-  _glContext.vertexAttribPointer(positionLoc, 3, WebGL.RenderingContext.FLOAT, false, 0, 0);
+  _gl.bindBuffer(wgl.RenderingContext.ARRAY_BUFFER, triVertexBuffer);
+  _gl.vertexAttribPointer(positionLoc, 3, wgl.RenderingContext.FLOAT, false, 0, 0);
   
   
   Float32List matrixArray = new Float32List(16);
   projMatrix.copyIntoArray(matrixArray); 
-  _glContext.uniformMatrix4fv(projMatrixLoc, false, matrixArray);
+  _gl.uniformMatrix4fv(projMatrixLoc, false, matrixArray);
   
   mvMatrix.copyIntoArray(matrixArray);
-  _glContext.uniformMatrix4fv(mvMatrixLoc, false, matrixArray);
+  _gl.uniformMatrix4fv(mvMatrixLoc, false, matrixArray);
   
   
-  _glContext.drawArrays(WebGL.RenderingContext.TRIANGLES, 0, 3);
+  _gl.drawArrays(wgl.RenderingContext.TRIANGLES, 0, 3);
   
   
 }
