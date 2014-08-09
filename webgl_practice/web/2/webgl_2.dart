@@ -21,6 +21,14 @@ wgl.Buffer texcoordBuffer;
 // index buffer
 wgl.Buffer indexBuffer;
 
+wgl.Program shaderProgram;
+
+int positionLoc;
+
+// uniforms
+wgl.UniformLocation worldMatrixLoc;
+wgl.UniformLocation cameraMatrixLoc;
+wgl.UniformLocation projectionMatrixLoc;
 void init()
 {
   glCanvas = document.querySelector("#drawArea");
@@ -48,7 +56,7 @@ void _initVertexBuffer()
    List<double> positions;
    List<double> normals;
    List<double> texcoords;
-   List<double> indices;
+   List<int> indices;
    
    
    // fill cube vertex position
@@ -96,20 +104,111 @@ void _initVertexBuffer()
      -1.0,  1.0, -1.0,   // index 23
    ];
    
+   // fill data to buffer
    _gl.bufferDataTyped(wgl.RenderingContext.ARRAY_BUFFER, new Float32List.fromList(positions), wgl.STATIC_DRAW);
+   
+   
+   
+   // fill index buffer
+   _gl.bindBuffer(wgl.RenderingContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
+   
+   indices = 
+   [ 0,  1,  2,    0,  2,  3, // front (two triangles)
+     4,  5,  6,    4,  6,  7, // back
+     8,  9, 10,    8, 10, 11, // top
+     12, 13, 14,   12, 14, 15, // bottom
+     16, 17, 18,   16, 18, 19, // right
+     20, 21, 22,   20, 22, 23  // left
+   ];
   
+   _gl.bufferDataTyped(wgl.RenderingContext.ELEMENT_ARRAY_BUFFER, new Uint16List.fromList(indices), wgl.RenderingContext.STATIC_DRAW);
+   
+   
 }
 
+void _initShader()
+{
+  String vs = 
+  """
+     attribute vec3 position;
+     
+     uniform mat4 worldMatrix;
+     uniform mat4 cameraMatrix;
+     uniform mat4 projectionMatrix;
+     
+     void main()
+     {
+        gl_Position = projectionMatrix * cameraMatrix * worldMatrix * vec4(position, 1.0);
+     }
+
+  """;
+  
+  
+  String ps =
+  """
+     precision mediump float;
+     void main()
+     {
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+     }
+  """;
+  
+  wgl.Shader vertexShader = _gl.createShader(wgl.RenderingContext.VERTEX_SHADER);
+  wgl.Shader pixelShader = _gl.createShader(wgl.RenderingContext.FRAGMENT_SHADER);
+  
+  // compile vertex shader
+  _gl.shaderSource(vertexShader, vs);
+  _gl.compileShader(vertexShader);
+  
+  // compile pixel shader
+  _gl.shaderSource(pixelShader, ps);
+  _gl.compileShader(pixelShader);
+  
+  
+  // create program & combine vs and ps
+  shaderProgram  = _gl.createProgram();
+  _gl.attachShader(shaderProgram, vertexShader);
+  _gl.attachShader(shaderProgram, pixelShader);
+  _gl.linkProgram(shaderProgram);
+  _gl.useProgram(shaderProgram);
+  
+  
+  // logs of compiled status
+  
+  
+  positionLoc = _gl.getAttribLocation(shaderProgram, "position");
+  _gl.enableVertexAttribArray(positionLoc);
+  
+  
+  worldMatrixLoc = _gl.getUniformLocation(shaderProgram, "worldMatrixLoc");
+  cameraMatrixLoc = _gl.getUniformLocation(shaderProgram, "cameraMatrixLoc");
+  projectionMatrixLoc = _gl.getUniformLocation(shaderProgram, "projectionMatrix");
+  
+  
+  
+}
 void onFrame(time)
 {
   
   _gl.viewport(0, 0, vpWidth, vpHeight);
   _gl.clear(wgl.RenderingContext.COLOR_BUFFER_BIT | wgl.RenderingContext.DEPTH_BUFFER_BIT);
   
+  
+  
+  
+  
+  _renderFrame();
 }
 
 
+void _renderFrame()
+{
+  window.requestAnimationFrame((num time) 
+      {
+         onFrame(time);
+      });
+}
 void main()
 {
-  
+  init();
 }
