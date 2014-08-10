@@ -29,6 +29,15 @@ int positionLoc;
 wgl.UniformLocation worldMatrixLoc;
 wgl.UniformLocation cameraMatrixLoc;
 wgl.UniformLocation projectionMatrixLoc;
+
+// matrix
+Matrix4 worldMatrix;
+Matrix4 cameraMatrix;
+Matrix4 projectionMatrix;
+
+double lasttime = 0.0;
+double rot_y;
+
 void init()
 {
   glCanvas = document.querySelector("#drawArea");
@@ -187,15 +196,41 @@ void _initShader()
   
   
 }
-void onFrame(time)
+
+void _onAnimate(double time)
+{
+  if(lasttime != 0.0)
+  {
+    double delta = time - lasttime;
+    
+    rot_y += 20.0 * delta;
+  }
+  
+  lasttime = time;
+}
+void onFrame(double time)
 {
   
   _gl.viewport(0, 0, vpWidth, vpHeight);
   _gl.clear(wgl.RenderingContext.COLOR_BUFFER_BIT | wgl.RenderingContext.DEPTH_BUFFER_BIT);
   
+  _onAnimate(time);
+  _gl.bindBuffer(wgl.RenderingContext.ARRAY_BUFFER, posBuffer);
+  _gl.vertexAttribPointer(positionLoc, 3, wgl.RenderingContext.FLOAT, false, 0, 0);
   
+  _gl.bindBuffer(wgl.RenderingContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  projectionMatrix = makePerspectiveMatrix(radians(45.0), vpWidth / vpHeight, 0.1, 10000.0);
   
+  worldMatrix  = new Matrix4.identity();
+  worldMatrix.rotateY(radians(rot_y));
   
+  cameraMatrix = makeViewMatrix(new Vector3(0.0, 0.0, 3.0), new Vector3.zero(), new Vector3(0.0, 1.0, 0.0));
+  
+  // set matrix uniforms.
+  Float32List mat = new Float32List(16);
+  
+  // draw elements
+  // _gl.drawElements(...);
   
   _renderFrame();
 }
