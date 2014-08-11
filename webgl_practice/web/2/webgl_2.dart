@@ -44,7 +44,7 @@ void init()
   vpWidth = glCanvas.width;
   vpHeight = glCanvas.height;
   
-  _gl = glCanvas.getContext("experimental-webgl");
+  _gl = glCanvas.getContext("webgl");
   _gl.enable(wgl.RenderingContext.DEPTH_TEST);
   
   _initVertexBuffer();
@@ -182,7 +182,7 @@ void _initShader()
   _gl.useProgram(shaderProgram);
   
   
-  // logs of compiled status
+  // logs of compiled & link status
   if (!_gl.getShaderParameter(vertexShader, wgl.RenderingContext.COMPILE_STATUS)) { 
     print(_gl.getShaderInfoLog(vertexShader));
   }
@@ -213,7 +213,7 @@ void _onAnimate(double time)
   {
     double delta = time - lasttime;
     
-    rot_y += 20.0 * delta / 1000.0;
+    rot_y += 40.0 * delta / 1000.0;
   }
   
   lasttime = time;
@@ -242,11 +242,12 @@ void onFrame(double time)
   double angle1 = radians(rot_y);
   worldMatrix.rotateY(angle1);
   
-  cameraMatrix = makeViewMatrix(new Vector3(0.0, 0.0, 8.0), new Vector3.zero(), new Vector3(0.0, 1.0, 0.0));
+  cameraMatrix = makeViewMatrix(new Vector3(0.0, 5.0, 8.0), new Vector3.zero(), new Vector3(0.0, 1.0, 0.0));
   
   // set matrix uniforms.
   Float32List mat = new Float32List(16);
   
+  // pass matrices to shader variable
   worldMatrix.copyIntoArray(mat);
   _gl.uniformMatrix4fv(worldMatrixLoc, false, mat);
   
