@@ -36,7 +36,7 @@ Matrix4 cameraMatrix;
 Matrix4 projectionMatrix;
 
 double lasttime = 0.0;
-double rot_y;
+double rot_y = 0.0;
 
 void init()
 {
@@ -48,7 +48,7 @@ void init()
   _gl.enable(wgl.RenderingContext.DEPTH_TEST);
   
   _initVertexBuffer();
-  
+  _initShader();
   
 }
 
@@ -183,14 +183,24 @@ void _initShader()
   
   
   // logs of compiled status
+  if (!_gl.getShaderParameter(vertexShader, wgl.RenderingContext.COMPILE_STATUS)) { 
+    print(_gl.getShaderInfoLog(vertexShader));
+  }
   
+  if (!_gl.getShaderParameter(pixelShader, wgl.RenderingContext.COMPILE_STATUS)) { 
+    print(_gl.getShaderInfoLog(pixelShader));
+  }
+  
+  if (!_gl.getProgramParameter(shaderProgram, wgl.RenderingContext.LINK_STATUS)) { 
+    print(_gl.getProgramInfoLog(shaderProgram));
+  }
   
   positionLoc = _gl.getAttribLocation(shaderProgram, "position");
   _gl.enableVertexAttribArray(positionLoc);
   
   
-  worldMatrixLoc = _gl.getUniformLocation(shaderProgram, "worldMatrixLoc");
-  cameraMatrixLoc = _gl.getUniformLocation(shaderProgram, "cameraMatrixLoc");
+  worldMatrixLoc = _gl.getUniformLocation(shaderProgram, "worldMatrix");
+  cameraMatrixLoc = _gl.getUniformLocation(shaderProgram, "cameraMatrix");
   projectionMatrixLoc = _gl.getUniformLocation(shaderProgram, "projectionMatrix");
   
   
@@ -203,34 +213,53 @@ void _onAnimate(double time)
   {
     double delta = time - lasttime;
     
-    rot_y += 20.0 * delta;
+    rot_y += 20.0 * delta / 1000.0;
   }
   
   lasttime = time;
 }
+
+double _degToRad(double degrees) {
+  return degrees * PI / 180;
+}
+
 void onFrame(double time)
 {
   
   _gl.viewport(0, 0, vpWidth, vpHeight);
+  _gl.clearColor(0,  0, 0, 255);
   _gl.clear(wgl.RenderingContext.COLOR_BUFFER_BIT | wgl.RenderingContext.DEPTH_BUFFER_BIT);
   
   _onAnimate(time);
   _gl.bindBuffer(wgl.RenderingContext.ARRAY_BUFFER, posBuffer);
   _gl.vertexAttribPointer(positionLoc, 3, wgl.RenderingContext.FLOAT, false, 0, 0);
   
-  _gl.bindBuffer(wgl.RenderingContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
+ 
   projectionMatrix = makePerspectiveMatrix(radians(45.0), vpWidth / vpHeight, 0.1, 10000.0);
   
   worldMatrix  = new Matrix4.identity();
-  worldMatrix.rotateY(radians(rot_y));
   
-  cameraMatrix = makeViewMatrix(new Vector3(0.0, 0.0, 3.0), new Vector3.zero(), new Vector3(0.0, 1.0, 0.0));
+  double angle1 = radians(rot_y);
+  worldMatrix.rotateY(angle1);
+  
+  cameraMatrix = makeViewMatrix(new Vector3(0.0, 0.0, 8.0), new Vector3.zero(), new Vector3(0.0, 1.0, 0.0));
   
   // set matrix uniforms.
   Float32List mat = new Float32List(16);
   
+  worldMatrix.copyIntoArray(mat);
+  _gl.uniformMatrix4fv(worldMatrixLoc, false, mat);
+  
+  cameraMatrix.copyIntoArray(mat);
+  _gl.uniformMatrix4fv(cameraMatrixLoc, false, mat);
+  
+  projectionMatrix.copyIntoArray(mat);
+  _gl.uniformMatrix4fv(projectionMatrixLoc, false, mat);
+  
+  
   // draw elements
-  // _gl.drawElements(...);
+  _gl.bindBuffer(wgl.RenderingContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  _gl.drawElements(wgl.RenderingContext.TRIANGLES, 36, wgl.RenderingContext.UNSIGNED_SHORT, 0);
   
   _renderFrame();
 }
@@ -246,4 +275,6 @@ void _renderFrame()
 void main()
 {
   init();
+  
+  _renderFrame();
 }
