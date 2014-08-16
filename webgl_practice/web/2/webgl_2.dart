@@ -24,11 +24,13 @@ wgl.Buffer indexBuffer;
 wgl.Program shaderProgram;
 
 int positionLoc;
+int texcoordLoc;
 
 // uniforms
 wgl.UniformLocation worldMatrixLoc;
 wgl.UniformLocation cameraMatrixLoc;
 wgl.UniformLocation projectionMatrixLoc;
+wgl.UniformLocation albedoSamplerLoc;
 
 // matrix
 Matrix4 worldMatrix;
@@ -38,17 +40,21 @@ Matrix4 projectionMatrix;
 double lasttime = 0.0;
 double rot_y = 0.0;
 
+// textur
+wgl.Texture albedoTex;
+
 void init()
 {
   glCanvas = document.querySelector("#drawArea");
-  vpWidth = glCanvas.width;
-  vpHeight = glCanvas.height;
+  vpWidth = glCanvas.offset.width;
+  vpHeight = glCanvas.offset.height;
   
   _gl = glCanvas.getContext("webgl");
   _gl.enable(wgl.RenderingContext.DEPTH_TEST);
   
   _initVertexBuffer();
   _initShader();
+  _initTexture();
   
 }
 
@@ -113,10 +119,53 @@ void _initVertexBuffer()
      -1.0,  1.0, -1.0,   // index 23
    ];
    
-   // fill data to buffer
+   // fill position to buffer
    _gl.bufferDataTyped(wgl.RenderingContext.ARRAY_BUFFER, new Float32List.fromList(positions), wgl.STATIC_DRAW);
    
+   // fill texture coordinates
+   _gl.bindBuffer(wgl.RenderingContext.ARRAY_BUFFER, texcoordBuffer);
    
+   texcoords = 
+   [
+    // front
+    0.0, 0.0,
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0,
+  
+    // back
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0,
+    0.0, 0.0,
+  
+    // top
+    0.0, 1.0,
+    0.0, 0.0,
+    1.0, 0.0,
+    1.0, 1.0,
+  
+    // bottom
+    1.0, 1.0,
+    0.0, 1.0,
+    0.0, 0.0,
+    1.0, 0.0,
+  
+    // right
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0,
+    0.0, 0.0,
+  
+    // left
+    0.0, 0.0,
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0,
+   ];
+   
+   // fill texcoords to buffer
+   _gl.bufferDataTyped(wgl.RenderingContext.ARRAY_BUFFER, new Float32List.fromList(texcoords), wgl.RenderingContext.STATIC_DRAW);
    
    // fill index buffer
    _gl.bindBuffer(wgl.RenderingContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -135,19 +184,49 @@ void _initVertexBuffer()
    
 }
 
+void _initTexture()
+{
+  albedoTex = _gl.createTexture();
+  
+  ImageElement diff = new Element.tag("img");
+  
+  diff.onLoad.listen((Event e)
+  {
+     _handleTexture(albedoTex, diff);
+  });
+  
+  diff.src = "./texture/crate.gif";
+}
+
+void _handleTexture(wgl.Texture tex, ImageElement img)
+{
+  _gl.bindTexture(wgl.RenderingContext.TEXTURE_2D, tex);
+  _gl.texImage2D(wgl.RenderingContext.TEXTURE_2D, 0, wgl.RenderingContext.RGBA, wgl.RenderingContext.RGBA, wgl.RenderingContext.UNSIGNED_BYTE, img);
+  _gl.texParameteri(wgl.RenderingContext.TEXTURE_2D, wgl.RenderingContext.TEXTURE_MAG_FILTER, wgl.RenderingContext.LINEAR);
+  _gl.texParameteri(wgl.RenderingContext.TEXTURE_2D, wgl.RenderingContext.TEXTURE_MIN_FILTER, wgl.RenderingContext.LINEAR_MIPMAP_NEAREST);
+  _gl.generateMipmap(wgl.RenderingContext.TEXTURE_2D);
+  
+  
+  // finish texture building
+  _gl.bindTexture(wgl.RenderingContext.TEXTURE_2D, null);
+  
+}
 void _initShader()
 {
   String vs = 
   """
      attribute vec3 position;
-     
+     attribute vec2 uv;
      uniform mat4 worldMatrix;
      uniform mat4 cameraMatrix;
      uniform mat4 projectionMatrix;
      
+     varying vec2 uv1;
      void main()
      {
         gl_Position = projectionMatrix * cameraMatrix * worldMatrix * vec4(position, 1.0);
+        
+        uv1 = uv;
      }
 
   """;
@@ -156,9 +235,11 @@ void _initShader()
   String ps =
   """
      precision mediump float;
+     uniform sampler2D albedo;
+     varying vec2 uv1;
      void main()
      {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        gl_FragColor = texture2D(albedo, uv1);
      }
   """;
   
@@ -198,10 +279,14 @@ void _initShader()
   positionLoc = _gl.getAttribLocation(shaderProgram, "position");
   _gl.enableVertexAttribArray(positionLoc);
   
+  texcoordLoc = _gl.getAttribLocation(shaderProgram, "uv");
+  _gl.enableVertexAttribArray(texcoordLoc);
+  
   
   worldMatrixLoc = _gl.getUniformLocation(shaderProgram, "worldMatrix");
   cameraMatrixLoc = _gl.getUniformLocation(shaderProgram, "cameraMatrix");
   projectionMatrixLoc = _gl.getUniformLocation(shaderProgram, "projectionMatrix");
+  albedoSamplerLoc = _gl.getUniformLocation(shaderProgram, "albedo");
   
   
   
@@ -234,6 +319,8 @@ void onFrame(double time)
   _gl.bindBuffer(wgl.RenderingContext.ARRAY_BUFFER, posBuffer);
   _gl.vertexAttribPointer(positionLoc, 3, wgl.RenderingContext.FLOAT, false, 0, 0);
   
+  _gl.bindBuffer(wgl.RenderingContext.ARRAY_BUFFER, texcoordBuffer);
+  _gl.vertexAttribPointer(texcoordLoc, 2, wgl.RenderingContext.FLOAT, false, 0, 0);
  
   projectionMatrix = makePerspectiveMatrix(radians(45.0), vpWidth / vpHeight, 0.1, 10000.0);
   
@@ -256,6 +343,11 @@ void onFrame(double time)
   
   projectionMatrix.copyIntoArray(mat);
   _gl.uniformMatrix4fv(projectionMatrixLoc, false, mat);
+  
+  // set texture
+  _gl.uniform1i(albedoSamplerLoc, 0);
+  _gl.activeTexture(wgl.RenderingContext.TEXTURE0);
+  _gl.bindTexture(wgl.RenderingContext.TEXTURE_2D, albedoTex);
   
   
   // draw elements
